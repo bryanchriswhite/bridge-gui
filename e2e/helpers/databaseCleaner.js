@@ -35,7 +35,8 @@ const cleanerFactory = (options) => {
         protocol,
         hostname,
         port,
-        pathname
+        pathname,
+        slashes: true
       }),
       (err, db) => {
         if (err) {

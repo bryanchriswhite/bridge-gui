@@ -1,5 +1,6 @@
 import 'colors';
 import path from 'path';
+import url from 'url';
 import {spawn} from 'child_process';
 import {sync as glob} from 'glob';
 import {nextOnExit, killOnExit, nullProcess} from '../helpers/processes';
@@ -14,27 +15,32 @@ import {seleniumLogger} from '../helpers/logger';
 //     return path.resolve(__dirname, 'build', assets[chunk]);
 //   });
 
+const defaultDatabaseUrl = 'mongodb://localhost:27017/__storj-bridge-test';
+const defaultBackendUrl = 'http://localhost:6382';
 const typeName = path.basename(__filename, '.js');
 
-const run = (next, suiteOptions) => {
+const run = (next, options) => {
   const {
-    noMockBackend
-  } = suiteOptions;
+    mockBackend,
+    backendUrl,
+    databaseUrl,
+  } = options;
 
   /*
    * Set environment variables used by webpack dev server
    * see <project root>/src/config.js
    */
-  if (!!noMockBackend) {
+  if (mockBackend) {
+    process.env.APIHOST = 'localhost';
+    process.env.APIPORT = Number(process.env.PORT) + 2 || 4002;
+  } else {
     const {
       hostname,
       port
-    } = noMockBackend;
+    } = url.parse(backendUrl || defaultBackendUrl);
     process.env.APIHOST = process.env.APIHOST || hostname;
     process.env.APIPORT = process.env.APIPORT || port;
-  } else {
-    process.env.APIHOST = 'localhost';
-    process.env.APIPORT = Number(process.env.PORT) + 2 || 4002;
+    process.env.DATABASE_URL = process.env.DATABASE_URL || databaseUrl || defaultDatabaseUrl;
   }
 
   const defaultSpawnOptions = {
@@ -46,7 +52,7 @@ const run = (next, suiteOptions) => {
   const testFiles = glob(e2eTestRoot + '/*{,*/*}-e2e.js');
 
   console.info('starting selenium...'.magenta);
-  const selenium = spawn('java', [
+  const seleniumProcess = spawn('java', [
     '-jar', path.resolve(__dirname, '../../bin/selenium-server-standalone-2.53.1.jar')
   ], {
     ...defaultSpawnOptions,
@@ -55,32 +61,32 @@ const run = (next, suiteOptions) => {
   });
 
   console.info('starting dev server...'.magenta);
-  const devServer = spawn('node', [
+  const devServerProcess = spawn('node', [
     path.resolve(__dirname, '../../bin/server.js')
   ], {defaultSpawnOptions});
 
-  let mockBackend;
-  if (!!noMockBackend) {
-    console.info(`*not* starting mock-backend server - using ${noMockBackend}...`.magenta);
-    mockBackend = nullProcess;
-  } else {
+  let mockBackendProcess;
+  if (mockBackend) {
     console.info('starting mock-backend server...'.magenta);
-    mockBackend = spawn('node', [
+    mockBackendProcess = spawn('node', [
       path.resolve(__dirname, './mockBackend/index.js')
     ], {defaultSpawnOptions});
+  } else {
+    console.info(`*not* starting mock-backend server - using ${mockBackend}...`.magenta);
+    mockBackendProcess = nullProcess;
   }
 
   console.info('starting mocha...'.magenta);
-  const mocha = spawn(path.resolve(__dirname, '../../node_modules/mocha/bin/_mocha'), [
+  const mochaProcess = spawn(path.resolve(__dirname, '../../node_modules/mocha/bin/_mocha'), [
     '--compilers', `js:${path.resolve(__dirname, '../../server.babel.js')}`,
     ...testFiles
   ], {...defaultSpawnOptions, stdio: 'inherit'});
 
-  nextOnExit(mocha, next);
+  nextOnExit(mochaProcess, next);
 
-  killOnExit(selenium, mocha);
-  killOnExit(mocha, [devServer, mockBackend]);
-  killOnExit(process, [selenium, mocha, devServer, mockBackend]);
+  killOnExit(seleniumProcess, mochaProcess);
+  killOnExit(mochaProcess, [devServerProcess, mockBackendProcess]);
+  killOnExit(process, [seleniumProcess, mochaProcess, devServerProcess, mockBackendProcess]);
 };
 
 // });

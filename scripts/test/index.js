@@ -22,6 +22,11 @@ program
     'defaults to http://localhost:6382; ' +
     'requires running bridge server (only applicable for --e2e and --visual; ' +
     'overriden by APIHOST and APIPORT env vars)')
+  .option('-D, --database-url [url]',
+    'Use database at `url`; ' +
+    'defaults to mongodb://localhost:27017/__storj-bridge-test; ' +
+    '(only applicable when using -M; ' +
+    'overriden by DATABASE_URL env var)')
   .on('--help', () => {
     console.log('  Examples:');
     console.log('');
@@ -36,12 +41,20 @@ program
 ;
 
 const {
-  noMockBackend
+  mockBackend,
+  databaseUrl
 } = program;
 
 const suiteOptions = {
-  noMockBackend
+  databaseUrl
 };
+
+if (typeof(mockBackend) === 'boolean') {
+  suiteOptions.mockBackend = mockBackend;
+} else {
+  suiteOptions.mockBackend = false;
+  suiteOptions.backendUrl = mockBackend;
+}
 
 /*
  * Test entry points are expected to be in a file with the same name as the

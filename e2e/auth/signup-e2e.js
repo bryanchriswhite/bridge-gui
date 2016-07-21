@@ -1,30 +1,39 @@
+import url from 'url';
 import {expect} from 'chai';
 import nightwatch from 'nightwatch';
 import 'colors';
 import {parallel, series} from 'async';
-// import request from '../helpers/superRequest';
-// import cleanerFactory from '../helpers/databaseCleaner';
-import {mockBackend, devServer} from '../helpers/pollServer';
+import cleanerFactory from '../helpers/databaseCleaner';
+import poll from '../helpers/pollServer';
 
+const noop = (done) => {
+  setTimeout(done, 0);
+};
 const devServerPort = Number(process.env.PORT) + 1 || 4001;
 const devServerBaseUrl = `http://localhost:${devServerPort}/`;
-const mockBackendPort = Number(process.env.APIPORT) ||
-  Number(process.env.PORT) + 2 || 4002;
-/*
- * TODO: remove `/ready` path and find a better way that works with
- * --no-mock-backend
- */
-const mockBackendBaseUrl = `http://localhost:${mockBackendPort}/ready`;
+const backendBaseUrl = url.format({
+  protocol: 'http',
+  hostname: process.env.APIHOST,
+  port: process.env.APIPORT,
+  slashes: true
+});
+console.log('backendBaseUrl: %j', backendBaseUrl);
 const bootTimeout = 15000;
 const bootIntervalTimeout = 500;
+const defaultPollOptions = {
+  readyStatusCode: 200,
+  intervalTimeout: bootIntervalTimeout
+};
 
 // TODO: use process.env.DATABASE_URL
-// const cleanMongo = cleanerFactory({
-//   pathname: '__storj-bridge-test'
-// });
+let cleanMongo;
 
-const mockBackendReady = mockBackend(mockBackendBaseUrl, bootIntervalTimeout);
-const devServerReady = devServer(devServerBaseUrl, bootIntervalTimeout);
+cleanMongo = !!process.env.DATABASE_URL ?
+  cleanerFactory(url.parse(process.env.DATABASE_URL)) :
+  noop;
+
+const backendReady = poll({name: 'backend', url: backendBaseUrl, ...defaultPollOptions});
+const devServerReady = poll({name: 'dev server', url: devServerBaseUrl, ...defaultPollOptions});
 
 context('After server boot:', () => {
   const client = nightwatch.initClient({silent: true});
@@ -38,8 +47,8 @@ context('After server boot:', () => {
     this.timeout(bootTimeout);
     parallel([
       devServerReady,
-      mockBackendReady,
-      // cleanMongo
+      backendReady,
+      cleanMongo
     ], done);
   });
 
@@ -52,19 +61,15 @@ context('After server boot:', () => {
     const eulaSelector = 'form [type="checkbox"]';
     const signupUrl = `${devServerBaseUrl}#/signup`;
     const goToSignup = (done) => {
-      // parallel([
-      //   (next) => {
-      //     browser
-      //       .url(signupUrl)
-      //       .waitForElementVisible('body', 5000);
-      //     client.start(() => next(null));
-      //   },
-      //   // cleanMongo
-      // ], done);
-      browser
-        .url(signupUrl)
-        .waitForElementVisible('body', 5000);
-      done();
+      parallel([
+        (next) => {
+          browser
+            .url(signupUrl)
+            .waitForElementVisible('body', 5000);
+          client.start(() => next(null));
+        },
+        cleanMongo
+      ], done);
     };
 
     before(goToSignup);

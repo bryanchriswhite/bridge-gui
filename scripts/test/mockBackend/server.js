@@ -9,6 +9,10 @@ const mockApp = express();
 const mockAppPort = Number(process.env.BACKEND_PORT) ||
   Number(process.env.PORT) + 2 || 4002;
 
+const OK200 = (req, res) => {
+  return res.sendStatus(200);
+};
+
 mockApp
 // CORS middleware
   .use((req, res, next) => {
@@ -61,9 +65,8 @@ mockApp
 
     res.json(result);
   })
-  .get('/ready', (req, res) => {
-    res.sendStatus(204);
-  })
+  .get('', OK200)
+  .get('/', OK200)
   .all('*', (req, res) => {
     res.sendStatus(404);
   })
