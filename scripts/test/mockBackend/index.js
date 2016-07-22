@@ -1,4 +1,4 @@
-#!/env/node
+#!/usr/bin/env node
 
 // TODO: maybe use webpack to build/cache static test output to speed things up
 // import webpack from 'webpack';
