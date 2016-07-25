@@ -5,6 +5,7 @@ import 'colors';
 import {parallel, series} from 'async';
 import cleanerFactory from '../helpers/databaseCleaner';
 import poll from '../helpers/pollServer';
+import * as itShould from '../sharedBehaviors';
 
 const noop = (done) => {
   setTimeout(done, 0);
@@ -17,7 +18,6 @@ const backendBaseUrl = url.format({
   port: process.env.APIPORT,
   slashes: true
 });
-console.log('backendBaseUrl: %j', backendBaseUrl);
 const bootTimeout = 15000;
 const bootIntervalTimeout = 500;
 const defaultPollOptions = {
