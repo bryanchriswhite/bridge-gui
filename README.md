@@ -82,3 +82,34 @@ docker create 9a43ea8b4d23
 ```bash
 docker start 63f037c089a3
 ```
+
+##Running Tests
+
+TODO: reference commander help here, etc.
+To run e2e tests you must have ruby installed; recommend using `rbenv`
+
+
+### E2E Tests
+
+#### Setup
+
+Install correct ruby version (e.g. using `rbenv`):
+
+```
+rbenv install $(cat .ruby-version)
+```
+
+Check that you're now using the proper version of ruby; if not, `cd` out of and back into the project root
+
+```
+ruby -v
+### should match
+cat .ruby-version
+```
+
+Install ruby dependencies
+
+```
+gem install bundler  ### bundler may already be installed - but just in case
+bundle install  ### installs to `./gems` directory :+1:
+```

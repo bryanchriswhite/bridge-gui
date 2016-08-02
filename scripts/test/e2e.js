@@ -48,8 +48,8 @@ const run = (next, options) => {
     stdio: ['ignore', process.stdout, process.stderr]
   };
 
-  const e2eTestRoot = path.resolve(__dirname, '../../e2e');
-  const testFiles = glob(e2eTestRoot + '/*{,*/*}-e2e.js');
+  const e2eTestRoot = path.resolve(__dirname, '../../features');
+  const testFiles = glob(e2eTestRoot + '/*{,*/*}.feature');
 
   console.info('starting selenium...'.magenta);
   const seleniumProcess = spawn('java', [
@@ -76,17 +76,17 @@ const run = (next, options) => {
     mockBackendProcess = nullProcess;
   }
 
-  console.info('starting mocha...'.magenta);
-  const mochaProcess = spawn(path.resolve(__dirname, '../../node_modules/mocha/bin/_mocha'), [
-    '--compilers', `js:${path.resolve(__dirname, '../../server.babel.js')}`,
+  console.info('starting cucumber...'.magenta);
+  const cucumberProcess = spawn(path.resolve(__dirname, '../../gems/ruby/2.2.0/bin/cucumber'), [
+    '-r', 'features',
     ...testFiles
   ], {...defaultSpawnOptions, stdio: 'inherit'});
 
-  nextOnExit(mochaProcess, next);
+  nextOnExit(cucumberProcess, next);
 
-  killOnExit(seleniumProcess, mochaProcess);
-  killOnExit(mochaProcess, [devServerProcess, mockBackendProcess]);
-  killOnExit(process, [seleniumProcess, mochaProcess, devServerProcess, mockBackendProcess]);
+  killOnExit(seleniumProcess, cucumberProcess);
+  killOnExit(cucumberProcess, [devServerProcess, mockBackendProcess]);
+  killOnExit(process, [seleniumProcess, cucumberProcess, devServerProcess, mockBackendProcess]);
 };
 
 // });
