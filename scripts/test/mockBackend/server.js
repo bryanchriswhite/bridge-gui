@@ -36,11 +36,8 @@ mockApp
   .use(jsonBodyParser())
   .use(urlEncodedParser({extended: true}))
   .post('/users', (req, res) => {
-    console.log('req.body: %j', req.body);
     const emailMatches = req.body.email.match(/^\S+(?=@)/);
     const user = emailMatches && emailMatches[0];
-    console.log('emailMatches: %j', emailMatches);
-    console.log('user: %j', user);
     let result;
 
     if (!user) return res.sendStatus(400); // invalid email

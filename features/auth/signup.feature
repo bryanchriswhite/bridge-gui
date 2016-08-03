@@ -19,7 +19,7 @@ Feature: Signup
     And I should not see an error
 
   Scenario: Registering with an existing email
-    Given a user exists with email 'testerz@example.com'
+    Given a user exists with email 'existing@example.com'
     When I register a user with email 'testerz@example.com'
     Then I should see a 'signup success' message page
     And The url should not change
